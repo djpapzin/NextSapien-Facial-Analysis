@@ -1,6 +1,6 @@
-# Advanced Facial Analysis Project for NextSapien
+# NextSapien-Facial-Analysis
 
-Welcome to the Advanced Facial Analysis Project, a groundbreaking initiative designed for NextSapien. This project represents a significant leap in AI and computer vision, focusing on the intricate task of human facial analysis. It aligns perfectly with NextSapien's ethos of pushing the boundaries of AI/ML applications, showcasing innovative approaches in gender identification, face rating, and providing comprehensive demographic insights.
+An innovative AI project for NextSapien, focusing on advanced facial analysis. This repository contains scripts and methodologies for gender identification, face rating, and comprehensive demographic insights using AI and computer vision techniques. The project showcases a unique blend of analytical rigor and creative problem-solving, aligning with NextSapien's ethos of pushing the boundaries in AI/ML applications.
 
 ![Demo Image](demo.png)
 
