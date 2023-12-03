@@ -21,11 +21,12 @@ This project employs advanced algorithms for face detection and attribute recogn
 - `demo.png`: Screenshot of expected output image.
 
 ## Scripts Overview
-### `screening_face_rating.py`
-Uses the Dlib library to detect faces in an image and then uses a pre-trained TensorFlow model to predict the facial attributes of each detected face. The script also includes code to save the results to a file and display the final image with the detected faces and attributes.
 
 ### `screening_deepface.py`
-Leverages the DeepFace framework for comprehensive facial analysis, providing demographic insights such as age, gender, race, and emotion. It enhances the depth of facial analysis by integrating advanced AI techniques.
+This script leverages the [DeepFace library](https://github.com/serengil/deepface), a comprehensive face recognition and facial attribute analysis framework. DeepFace is a hybrid framework wrapping state-of-the-art models like VGG-Face, Google FaceNet, OpenFace, Facebook DeepFace, DeepID, ArcFace, Dlib, and SFace. It simplifies complex processes in face recognition, including detection, alignment, normalization, representation, and verification. The library offers functionalities for face verification, recognition, embedding generation, and supports multiple face recognition models and similarity metrics. It also provides robust facial attribute analysis, including age, gender, emotion, and race predictions.
+
+### `screening_face_rating.py`
+This script utilizes the [Facial Attribute Recognition library](https://github.com/dsabarinathan/Facial-Attribute-Recognition-from-face-images), which is a Keras implementation for facial attribute recognition. The library is trained on the CelebFaces Attributes (CelebA) Dataset and supports models like Visual Transformer and FaceNet for facial attribute extraction. It offers precise facial attribute extraction, providing insights into various features such as age, gender, hair length, and more. The library is designed for both image processing and real-time video applications, enhancing them with accurate and comprehensive facial attribute analysis.
 
 ## Model Download
 - Pre-trained Model: Automatically downloaded when running `screening_face_rating.py` alternatively, download from [Google Drive Link](https://drive.google.com/file/d/1b_tgLV-m7kiVQarKXHpth6paQjwQA89y) and place it inside `pre-trained_weights` folder.
