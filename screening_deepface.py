@@ -7,6 +7,8 @@ from tensorflow.keras.models import load_model
 from datetime import datetime
 from deepface import DeepFace
 import gdown
+from PIL import Image
+import keras
 
 # Function to download the model file
 def download_model(model_url, model_dir, model_file):
@@ -42,6 +44,9 @@ model = load_model(model_file, custom_objects={"Adamw": tfa.optimizers.AdamW}, c
 
 # Initialize the Dlib face detector
 detector = dlib.get_frontal_face_detector()
+
+# Load height estimation model
+height_model = keras.models.load_model('pre-trained_weights/face_to_height_model.h5')
 
 # Define attribute weights with adjustments for both genders
 attribute_weights = {
@@ -148,7 +153,6 @@ labels = [
 # Threshold for attribute detection
 threshold = 0.4
 
-
 # Function to draw results and calculate face rating
 def draw_results(input_image, det, output, file_path, face_number, deepface_data):
     """
@@ -197,8 +201,20 @@ def draw_results(input_image, det, output, file_path, face_number, deepface_data
     cv2.putText(input_image, f"Face {face_number}", (x, y - 20), font, font_scale, (255, 0, 0), 1, cv2.LINE_AA)
     cv2.putText(input_image, f"Gender: {deepface_data['dominant_gender']}", (x, y + h + 15), font, font_scale, (255, 0, 0), 1, cv2.LINE_AA)
     cv2.putText(input_image, f"Rating: {rating}/10", (x, y + h + 30), font, font_scale, (255, 0, 0), 1, cv2.LINE_AA)
+    cv2.putText(input_image, f"Height: {deepface_data['height']}m", (x, y + h + 45), font, font_scale, (255, 0, 0), 1, cv2.LINE_AA)
 
     return input_image, detected_attributes
+
+# Function to estimate height
+def estimate_height(detected_face):
+    region_image = Image.fromarray(detected_face[:, :, ::-1])  # Convert BGR to RGB
+    resized_img = region_image.resize((128, 128), Image.Resampling.LANCZOS)
+    output_array = np.array(resized_img) / 255.0
+    output_array = np.expand_dims(output_array, axis=0)
+    predicted_height = height_model.predict(output_array)[0][0]
+    return predicted_height
+
+
 # Function to process a face
 def process_face(img, det, deepface_data, face_number, output_file_path):
     """
@@ -232,6 +248,11 @@ def process_face(img, det, deepface_data, face_number, output_file_path):
     image_batch = np.zeros((1, 128, 128, 3))
     image_batch[0] = cv2.resize(cropImage, (128, 128), interpolation=cv2.INTER_CUBIC) / 256
     output = model.predict(image_batch)
+    
+    # Height estimation
+    cropImage = img[det.top():det.bottom(), det.left():det.right()]
+    height = estimate_height(cropImage)
+    deepface_data['height'] = height
 
     # Determine positions of attributes with high probability
     high_prob_positions = np.where(output[0] > threshold)[0]
@@ -249,8 +270,9 @@ def process_face(img, det, deepface_data, face_number, output_file_path):
         file.write(f"Face {face_number}:\n")
         file.write(f"  Gender: {deepface_data['dominant_gender']}\n")
         file.write(f"  Age: {deepface_data['age']}\n")
-        file.write(f"  Race: {deepface_data['dominant_race']}\n")
-        file.write(f"  Emotion: {deepface_data['dominant_emotion']}\n")
+        file.write(f"  Height: {height:.2f}cm\n")
+        # file.write(f"  Race: {deepface_data['dominant_race']}\n")
+        # file.write(f"  Emotion: {deepface_data['dominant_emotion']}\n")
         file.write(f"  Rating: {rating:.1f}/10\n")
         for attr in detected_attributes:
             weight = attribute_weights[gender_key]['positive'].get(attr, 0) + attribute_weights[gender_key]['negative'].get(attr, 0)
@@ -277,7 +299,7 @@ def main():
     None
     """
     # Define the path to the image
-    img_path = 'dataset/screenshot.png'  # Replace with your image path
+    img_path = 'dataset/me.jpg'  # Replace with your image path
     file_name = os.path.splitext(os.path.basename(img_path))[0]  # Extract file name without extension
 
     # Read the image using OpenCV
