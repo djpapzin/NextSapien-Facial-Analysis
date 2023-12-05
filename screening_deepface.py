@@ -103,10 +103,10 @@ def calculate_face_rating(attributes, gender):
 
     return score
 
-# Function to draw gender, face number, and bounding box 
-def draw_gender_and_box(image, face_analysis, det, rating, face_number):
+# Function to draw gender, face number, rating, and height on the image
+def draw_gender_and_box(image, face_analysis, det, rating, height, face_number):
     """ 
-    Draw a bounding box around a face in an image, along with the face number, gender, and rating.
+     Draw a bounding box around a face in an image, along with the face number, gender, rating, and height.
     Args:
         image (numpy.ndarray): The image to draw on.
         face_analysis (dict): Analysis of the face.
@@ -133,10 +133,10 @@ def draw_gender_and_box(image, face_analysis, det, rating, face_number):
     gender_text = "Man" if face_analysis['dominant_gender'].lower() == 'man' else "Woman"
     cv2.putText(image, f"Face {face_number}", (x, y - 30), font, font_scale, color, thickness, cv2.LINE_AA)
     cv2.putText(image, gender_text, (x, y - 15), font, font_scale, color, thickness, cv2.LINE_AA)
-    cv2.putText(image, f"{rating:.1f}/10", (x, y + h + 15), font, font_scale, color, thickness, cv2.LINE_AA)
+    cv2.putText(image, f"Rating: {rating:.1f}/10", (x, y + h + 15), font, font_scale, color, thickness, cv2.LINE_AA)
+    cv2.putText(image, f"Height: {height:.2f}m", (x, y + h + 30), font, font_scale, color, thickness, cv2.LINE_AA)
 
     return image
-
 
 labels = [
     '5_o_Clock_Shadow', 'Arched_Eyebrows', 'Attractive', 'Bags_Under_Eyes', 
@@ -262,8 +262,9 @@ def process_face(img, det, deepface_data, face_number, output_file_path):
     gender_key = 'male' if deepface_data['dominant_gender'].lower() == 'man' else 'female'
     rating = calculate_face_rating(detected_attributes, gender_key)
 
-    # Draw gender, face number, and rating on the image
-    img = draw_gender_and_box(img, deepface_data, det, rating, face_number)
+    # Draw gender, face number, rating, and height on the image
+    img = draw_gender_and_box(img, deepface_data, det, rating, height, face_number)
+
 
     # Write results to the file with rating rounded to one decimal place
     with open(output_file_path, 'a') as file:
@@ -276,7 +277,8 @@ def process_face(img, det, deepface_data, face_number, output_file_path):
         file.write(f"  Rating: {rating:.1f}/10\n")
         for attr in detected_attributes:
             weight = attribute_weights[gender_key]['positive'].get(attr, 0) + attribute_weights[gender_key]['negative'].get(attr, 0)
-            file.write(f"    {attr}: {weight}\n")
+            if weight != 0:
+                file.write(f"    {attr}: {weight}\n")
         file.write('\n')
 
     return img, rating
@@ -284,64 +286,55 @@ def process_face(img, det, deepface_data, face_number, output_file_path):
 
 # Main function
 def main():
-    """
-    Generates a function comment for the given function body.
-
-    This function takes in a function body as input and generates a comment that describes the function.
-    The comment includes a description of the entire function, its parameters, and its return types.
-
-    Parameters:
-    ----------
-    None
-
-    Returns:
-    -------
-    None
-    """
-    # Define the path to the image
-    img_path = 'dataset/me.jpg'  # Replace with your image path
-    file_name = os.path.splitext(os.path.basename(img_path))[0]  # Extract file name without extension
-
-    # Read the image using OpenCV
-    img = cv2.imread(img_path)
-    resizedImage = cv2.resize(img, (int(img.shape[1] / 2), int(img.shape[0] / 2)))
-    rgb_image = cv2.cvtColor(resizedImage, cv2.COLOR_BGR2RGB)
-
-    # Prepare for output
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    input_folder = 'dataset'
     output_folder = './output'
+
+    # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    # Define the path to the output image
-    output_image_path = os.path.join(output_folder, f'{file_name}_{timestamp}.png')
-    output_file_path = os.path.join(output_folder, f'{file_name}_{timestamp}.txt')
 
-    # Analyze the image using DeepFace for demographic information
-    deepface_analysis = DeepFace.analyze(img_path, actions=['age', 'gender', 'race', 'emotion'], enforce_detection=False, detector_backend='retinaface')
+    # Iterate over each file in the input folder
+    for file_name in os.listdir(input_folder):
+        if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            img_path = os.path.join(input_folder, file_name)
 
-    # Initialize face number
-    face_number = 1
+            # Read the image using OpenCV
+            img = cv2.imread(img_path)
+            if img is None:
+                print(f"Could not read image {file_name}. Skipping.")
+                continue
+            resizedImage = cv2.resize(img, (int(img.shape[1] / 2), int(img.shape[0] / 2)))
+            rgb_image = cv2.cvtColor(resizedImage, cv2.COLOR_BGR2RGB)
 
-    # Process the analysis results
-    if isinstance(deepface_analysis, list):
-        for face_analysis in deepface_analysis:
-            # Extract region data
-            x, y, w, h = (face_analysis['region'][k] for k in ['x', 'y', 'w', 'h'])
-            # Convert region data to dlib rectangle for compatibility
-            det = dlib.rectangle(left=x, top=y, right=x+w, bottom=y+h)
-            # Perform attribute analysis and draw results
-            img, rating = process_face(img, det, face_analysis, face_number, output_file_path)
-            face_number += 1
-    else:
-        # Convert region data to dlib rectangle for compatibility
-        x, y, w, h = (deepface_analysis['region'][k] for k in ['x', 'y', 'w', 'h'])
-        det = dlib.rectangle(left=x, top=y, right=x+w, bottom=y+h)
-        # Perform attribute analysis and draw results
-        img, rating = process_face(img, det, deepface_analysis, face_number, output_file_path)
+            # Prepare for output
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_image_path = os.path.join(output_folder, f'{os.path.splitext(file_name)[0]}_{timestamp}.png')
+            output_file_path = os.path.join(output_folder, f'{os.path.splitext(file_name)[0]}_{timestamp}.txt')
 
-    # Save and display the final image
-    cv2.imwrite(output_image_path, img)
-    
+            # Analyze the image using DeepFace for demographic information
+            deepface_analysis = DeepFace.analyze(img_path, actions=['age', 'gender', 'race', 'emotion'], enforce_detection=False, detector_backend='retinaface')
+
+            # Initialize face number
+            face_number = 1
+
+            # Process the analysis results
+            if isinstance(deepface_analysis, list):
+                for face_analysis in deepface_analysis:
+                    x, y, w, h = (face_analysis['region'][k] for k in ['x', 'y', 'w', 'h'])
+                    det = dlib.rectangle(left=x, top=y, right=x+w, bottom=y+h)
+                    img, rating = process_face(img, det, face_analysis, face_number, output_file_path)
+                    face_number += 1
+            else:
+                x, y, w, h = (deepface_analysis['region'][k] for k in ['x', 'y', 'w', 'h'])
+                det = dlib.rectangle(left=x, top=y, right=x+w, bottom=y+h)
+                img, rating = process_face(img, det, deepface_analysis, face_number, output_file_path)
+
+            # Save and display the final image
+            cv2.imwrite(output_image_path, img)
+            # cv2.imshow("Processed Image", img)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+
 # Call the main function
 if __name__ == "__main__":
     main()
