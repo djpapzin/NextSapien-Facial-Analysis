@@ -133,8 +133,8 @@ def draw_gender_and_box(image, face_analysis, det, rating, height, face_number):
     gender_text = "Man" if face_analysis['dominant_gender'].lower() == 'man' else "Woman"
     cv2.putText(image, f"Face {face_number}", (x, y - 30), font, font_scale, color, thickness, cv2.LINE_AA)
     cv2.putText(image, gender_text, (x, y - 15), font, font_scale, color, thickness, cv2.LINE_AA)
-    cv2.putText(image, f"Rating: {rating:.1f}/10", (x, y + h + 15), font, font_scale, color, thickness, cv2.LINE_AA)
-    cv2.putText(image, f"Height: {height:.2f}m", (x, y + h + 30), font, font_scale, color, thickness, cv2.LINE_AA)
+    cv2.putText(image, f"{height:.2f}cm", (x, y + h + 15), font, font_scale, color, thickness, cv2.LINE_AA)
+    cv2.putText(image, f"{rating:.1f}/10", (x, y + h + 30), font, font_scale, color, thickness, cv2.LINE_AA)
 
     return image
 
